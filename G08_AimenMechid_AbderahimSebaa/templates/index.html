@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="ar" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام حجز الرحلات - الشركة الوطنية للنقل</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #00d2ff;
+            margin-bottom: 30px;
+            font-size: 2rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        h1::before {
+            content: "🚆 ";
+        }
+        
+        .card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .card h2 {
+            color: #0f3460;
+            border-right: 4px solid #00d2ff;
+            padding-right: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .filter-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+        }
+        
+        .filter-group {
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        .filter-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #0f3460;
+        }
+        
+        .filter-group select, .filter-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .filter-group select:focus, .filter-group input:focus {
+            outline: none;
+            border-color: #00d2ff;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #00d2ff 0%, #0f3460 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.3s;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+        }
+        
+        button.reset {
+            background: #6c757d;
+        }
+        
+        .search-box {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .search-box input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            overflow-x: auto;
+            display: block;
+        }
+        
+        th {
+            background: #0f3460;
+            color: white;
+            padding: 12px;
+            text-align: center;
+        }
+        
+        td {
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        tr:hover {
+            background: #f0f0f0;
+        }
+        
+        .price {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        
+        .train-badge {
+            display: inline-block;
+            background: #00d2ff;
+            color: #0f3460;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .search-result {
+            margin-top: 20px;
+            background: #e8f0fe;
+            padding: 20px;
+            border-radius: 12px;
+            display: none;
+        }
+        
+        .search-result h3 {
+            color: #0f3460;
+            margin-bottom: 15px;
+        }
+        
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        
+        .success {
+            color: #27ae60;
+        }
+        
+        .stats-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .stats-box {
+            flex: 1;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 15px;
+            border-bottom: 3px solid #00d2ff;
+        }
+        
+        .stats-box h3 {
+            color: #0f3460;
+            margin-bottom: 10px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading::after {
+            content: "⏳";
+            display: inline-block;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>الشركة الوطنية للنقل بالسكك الحديدية</h1>
+    
+    <!-- بطاقة البحث برمز الرحلة (باستخدام DOM) -->
+    <div class="card">
+        <h2>🔍 البحث عن رحلة برمزها</h2>
+        <div class="search-box">
+            <input type="text" id="tripCode" placeholder="أدخل رمز الرحلة مثل T101, T201, T301...">
+            <button onclick="searchByCode()">🔎 بحث</button>
+        </div>
+        <div id="tripResult" class="search-result"></div>
+    </div>
+    
+    <!-- بطاقة التصفية -->
+    <div class="card">
+        <h2>🎯 تصفية الرحلات</h2>
+        <div class="filter-form">
+            <div class="filter-group">
+                <label>🏙️ مدينة المغادرة</label>
+                <select id="filterDeparture">
+                    <option value="">الكل</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>🏙️ مدينة الوصول</label>
+                <select id="filterArrival">
+                    <option value="">الكل</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>🚂 نوع القطار</label>
+                <select id="filterTrainType">
+                    <option value="">الكل</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>💰 السعر الأقصى (DA)</label>
+                <input type="number" id="filterMaxPrice" placeholder="مثال: 2000">
+            </div>
+            <button onclick="applyFilters()">تطبيق التصفية</button>
+            <button class="reset" onclick="resetFilters()">إعادة تعيين</button>
+        </div>
+    </div>
+    
+    <!-- بطاقة قائمة الرحلات -->
+    <div class="card">
+        <h2>📋 قائمة الرحلات</h2>
+        <div id="tripsContainer">
+            <div class="loading">جاري التحميل...</div>
+        </div>
+    </div>
+    
+    <!-- بطاقة الإحصائيات (باستخدام ElementTree) -->
+    <div class="card">
+        <h2>📊 إحصائيات الرحلات</h2>
+        <div id="statsContainer">
+            <div class="loading">جاري التحميل...</div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        تطبيق تفاعلي باستخدام Flask | جميع الحقوق محفوظة © 2026
+    </div>
+</div>
+
+<script>
+    // تحميل البيانات عند فتح الصفحة
+    document.addEventListener('DOMContentLoaded', () => {
+        loadCities();
+        loadTrips();
+        loadStatistics();
+    });
+    
+    // تحميل المدن وأنواع القطارات
+    async function loadCities() {
+        try {
+            const response = await fetch('/api/cities');
+            const data = await response.json();
+            
+            const depSelect = document.getElementById('filterDeparture');
+            const arrSelect = document.getElementById('filterArrival');
+            const trainSelect = document.getElementById('filterTrainType');
+            
+            data.departures.forEach(city => {
+                depSelect.innerHTML += `<option value="${city}">${city}</option>`;
+            });
+            data.arrivals.forEach(city => {
+                arrSelect.innerHTML += `<option value="${city}">${city}</option>`;
+            });
+            data.train_types.forEach(type => {
+                trainSelect.innerHTML += `<option value="${type}">${type}</option>`;
+            });
+        } catch(error) {
+            console.error('خطأ في تحميل المدن:', error);
+        }
+    }
+    
+    // تحميل الرحلات مع التصفية
+    async function loadTrips() {
+        const departure = document.getElementById('filterDeparture').value;
+        const arrival = document.getElementById('filterArrival').value;
+        const trainType = document.getElementById('filterTrainType').value;
+        const maxPrice = document.getElementById('filterMaxPrice').value;
+        
+        const url = `/api/trips?departure=${encodeURIComponent(departure)}&arrival=${encodeURIComponent(arrival)}&train_type=${encodeURIComponent(trainType)}&max_price=${maxPrice}`;
+        
+        try {
+            const response = await fetch(url);
+            const trips = await response.json();
+            displayTrips(trips);
+        } catch(error) {
+            document.getElementById('tripsContainer').innerHTML = '<div class="error">❌ خطأ في تحميل الرحلات</div>';
+        }
+    }
+    
+    // عرض الرحلات في جدول
+    function displayTrips(trips) {
+        if (!trips.length) {
+            document.getElementById('tripsContainer').innerHTML = '<div style="text-align:center; padding:20px;">❌ لا توجد رحلات تطابق المعايير</div>';
+            return;
+        }
+        
+        let html = `<table><thead><tr>
+            <th>رمز الرحلة</th>
+            <th>نوع القطار</th>
+            <th>المغادرة</th>
+            <th>الوصول</th>
+            <th>الموعد</th>
+            <th>الدرجات والأسعار</th>
+            <th>أيام السفر</th>
+        </thead><tbody>`;
+        
+        for (const trip of trips) {
+            let classesHtml = '';
+            for (const cls of trip.classes) {
+                classesHtml += `<span class="train-badge">${cls.type}: ${cls.price} DA</span> `;
+            }
+            html += `<tr>
+                <td><strong>${trip.code}</strong></td>
+                <td><span class="train-badge">${trip.train_type}</span></td>
+                <td>${trip.departure}</td>
+                <td>${trip.arrival}</td>
+                <td>${trip.schedule}</td>
+                <td>${classesHtml}</td>
+                <td>${trip.days || 'كل الأيام'}</td>
+            </tr>`;
+        }
+        html += '</tbody></table>';
+        document.getElementById('tripsContainer').innerHTML = html;
+    }
+    
+    // البحث برمز الرحلة باستخدام DOM
+    async function searchByCode() {
+        const code = document.getElementById('tripCode').value.trim();
+        const resultDiv = document.getElementById('tripResult');
+        
+        if (!code) {
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="error">⚠️ الرجاء إدخال رمز الرحلة (مثال: T101)</div>';
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/trip/${code}`);
+            if (response.ok) {
+                const trip = await response.json();
+                let classesHtml = '';
+                for (const cls of trip.classes) {
+                    classesHtml += `<li><strong>${cls.type}:</strong> ${cls.price} DA</li>`;
+                }
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <h3>✅ نتيجة البحث عن الرحلة ${trip.code}</h3>
+                    <p><strong>🚂 نوع القطار:</strong> ${trip.train_type}</p>
+                    <p><strong>🏙️ من:</strong> ${trip.departure}</p>
+                    <p><strong>🏙️ إلى:</strong> ${trip.arrival}</p>
+                    <p><strong>🕐 الموعد:</strong> ${trip.schedule}</p>
+                    <p><strong>📅 أيام السفر:</strong> ${trip.days || 'كل الأيام'}</p>
+                    <p><strong>💺 الدرجات:</strong></p>
+                    <ul>${classesHtml}</ul>
+                `;
+            } else {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = '<div class="error">❌ لم يتم العثور على رحلة بهذا الرمز</div>';
+            }
+        } catch(error) {
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="error">❌ حدث خطأ في البحث</div>';
+        }
+    }
+    
+    // تحميل الإحصائيات (باستخدام ElementTree)
+    async function loadStatistics() {
+        try {
+            const response = await fetch('/api/statistics');
+            const stats = await response.json();
+            
+            let html = '<div class="stats-container">';
+            
+            // عدد الرحلات حسب نوع القطار
+            html += '<div class="stats-box"><h3>🚂 عدد الرحلات حسب النوع</h3>';
+            for (const [train, count] of Object.entries(stats.train_type_count)) {
+                html += `<p><strong>${train}:</strong> ${count} رحلة</p>`;
+            }
+            html += '</div>';
+            
+            // أرخص وأغلى رحلة عامة
+            if (stats.cheapest_trip) {
+                html += `<div class="stats-box">
+                    <h3>💰 أرخص رحلة</h3>
+                    <p><strong>الرمز:</strong> ${stats.cheapest_trip.code}</p>
+                    <p><strong>السعر:</strong> <span class="price">${stats.cheapest_trip.price} DA</span></p>
+                </div>`;
+            }
+            
+            if (stats.most_expensive_trip) {
+                html += `<div class="stats-box">
+                    <h3>💎 أغلى رحلة</h3>
+                    <p><strong>الرمز:</strong> ${stats.most_expensive_trip.code}</p>
+                    <p><strong>السعر:</strong> <span class="price">${stats.most_expensive_trip.price} DA</span></p>
+                </div>`;
+            }
+            
+            html += '</div>';
+            
+            // إحصائيات لكل خط (أرخص وأغلى رحلة)
+            if (stats.lines_stats && stats.lines_stats.length > 0) {
+                html += '<div class="stats-box" style="margin-top:15px;"><h3>📈 أرخص وأغلى رحلة لكل خط</h3>';
+                for (const line of stats.lines_stats) {
+                    html += `<p><strong>${line.departure} → ${line.arrival}</strong><br>
+                    🟢 أرخص: ${line.min_price} DA (${line.min_trip_code})<br>
+                    🔴 أغلى: ${line.max_price} DA (${line.max_trip_code})</p>`;
+                }
+                html += '</div>';
+            }
+            
+            document.getElementById('statsContainer').innerHTML = html;
+        } catch(error) {
+            document.getElementById('statsContainer').innerHTML = '<div class="error">❌ خطأ في تحميل الإحصائيات</div>';
+        }
+    }
+    
+    // تطبيق التصفية
+    function applyFilters() {
+        loadTrips();
+    }
+    
+    // إعادة تعيين التصفية
+    function resetFilters() {
+        document.getElementById('filterDeparture').value = '';
+        document.getElementById('filterArrival').value = '';
+        document.getElementById('filterTrainType').value = '';
+        document.getElementById('filterMaxPrice').value = '';
+        loadTrips();
+    }
+</script>
+</body>
+</html>
